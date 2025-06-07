@@ -65,15 +65,12 @@ public partial class Formulas
 
         if (attacker.Stat == null)
         {
-            throw new ArgumentException(
-                $@"{nameof(attacker)}.{nameof(attacker.Stat)} is null",
-                nameof(attacker)
-            );
+            throw new ArgumentException($"{nameof(attacker)}.{nameof(attacker.Stat)} is null", nameof(attacker));
         }
 
         if (victim.Stat == null)
         {
-            throw new ArgumentException($@"{nameof(victim)}.{nameof(victim.Stat)} is null", nameof(victim));
+            throw new ArgumentException($"{nameof(victim)}.{nameof(victim.Stat)} is null", nameof(victim));
         }
 
         var expressionString = damageType switch
@@ -117,6 +114,18 @@ public partial class Formulas
             expression.Parameters["V_MagicResist"] = victim.Stat[(int)Stat.MagicResist].Value();
             expression.Parameters["V_Level"] = victim.Level;
 
+            // 👇 Inject MissingHp only for Barbarian class
+            if (attacker.Class?.Name == "Barbarian")
+            {
+                var maxHp = attacker.MaxVital[(int)Vitals.Health];
+                var currentHp = attacker.Vitals[(int)Vitals.Health];
+                expression.Parameters["MissingHp"] = maxHp - currentHp;
+            }
+            else
+            {
+                expression.Parameters["MissingHp"] = 0;
+            }
+
             expression.EvaluateFunction += delegate(string name, FunctionArgs args)
             {
                 ArgumentNullException.ThrowIfNull(args);
@@ -156,13 +165,8 @@ public partial class Formulas
             throw new ArgumentException($"{nameof(Random)}() requires 2 numerical parameters.");
         }
 
-        var min = (int)Math.Round(
-            (double)(parameters[0] ?? throw new NullReferenceException("First parameter is null."))
-        );
-
-        var max = (int)Math.Round(
-            (double)(parameters[1] ?? throw new NullReferenceException("Second parameter is null."))
-        );
+        var min = (int)Math.Round((double)(parameters[0] ?? throw new NullReferenceException("First parameter is null.")));
+        var max = (int)Math.Round((double)(parameters[1] ?? throw new NullReferenceException("Second parameter is null.")));
 
         return min >= max ? min : Randomization.Next(min, max + 1);
     }
